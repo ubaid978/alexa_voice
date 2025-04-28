@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alexa Voice Assistant</title>
+    <style>
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #34A853;
+            --accent-color: #EA4335;
+            --dark-bg: #202124;
+            --light-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-primary: #3c4043;
+            --text-secondary: #5f6368;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            background-color: var(--card-bg);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding-bottom: 100px;
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background-color: var(--light-bg);
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .user-avatar {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+        }
+
+        .message-text {
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 8px;
+            padding: 8px 16px;
+            background-color: var(--light-bg);
+            border-radius: 16px;
+            width: fit-content;
+            margin-top: 8px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background-color: var(--card-bg);
+            box-shadow: 0 -1px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-box {
+            flex: 1;
+            border-radius: 24px;
+            border: 1px solid #dfe1e5;
+            padding: 12px 20px;
+            font-size: 16px;
+            outline: none;
+            min-height: 24px;
+            max-height: 120px;
+            overflow-y: auto;
+            resize: none;
+        }
+
+        .input-box:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(66,133,244,0.2);
+        }
+
+        .action-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-button:hover {
+            background-color: #3367d6;
+        }
+
+        .action-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .voice-indicator {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .voice-indicator.active {
+            opacity: 1;
+            bottom: 120px;
+        }
+
+        .pulse {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .permission-help {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 400px;
+            text-align: center;
+            display: none;
+        }
+
+        .permission-help.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span>🔊</span>
+            <span>Alexa Voice Assistant</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="message-container" id="message-container">
+            <!-- Messages will appear here -->
+        </div>
+    </main>
+
+    <div class="voice-indicator" id="voice-indicator">
+        <div class="pulse"></div>
+        <span>Listening...</span>
+    </div>
+
+    <div class="input-container">
+        <div class="input-box" id="input-box" contenteditable="true" placeholder="Type or speak..."></div>
+        <button class="action-button" id="send-button" title="Send">
+            <span>📤</span>
+        </button>
+        <button class="action-button" id="mic-button" title="Start voice input">
+            <span>🎤</span>
+        </button>
+    </div>
+
+    <div class="permission-help" id="permission-help">
+        <h3>Microphone Permission Required</h3>
+        <p>To use voice commands, please allow microphone access:</p>
+        <ol style="text-align: left; margin: 16px 0;">
+            <li>Click the lock icon in your address bar</li>
+            <li>Set "Microphone" to "Allow"</li>
+            <li>Refresh the page</li>
+        </ol>
+        <button id="close-help" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 4px;">Got it!</button>
+    </div>
+
+    <script>
+        // DOM Elements
+        const messageContainer = document.getElementById('message-container');
+        const inputBox = document.getElementById('input-box');
+        const sendButton = document.getElementById('send-button');
+        const micButton = document.getElementById('mic-button');
+        const voiceIndicator = document.getElementById('voice-indicator');
+        const permissionHelp = document.getElementById('permission-help');
+        const closeHelp = document.getElementById('close-help');
+
+        // API Configuration
+        const API_URL = 'http://localhost:8000/agent';
+        const API_HEADERS = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+
+        // Voice recognition variables
+        let recognition;
+        let isRecording = false;
+        let permissionGranted = false;
+        let femaleVoice = null;
+
+        // Initialize voices
+        function initializeVoices() {
+            if ('speechSynthesis' in window) {
+                // Function to load and select voices
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    
+                    // Try to find a female voice - checking common voice names across platforms
+                    femaleVoice = voices.find(voice => 
+                        voice.name.includes('Female') || 
+                        voice.name.includes('Woman') ||
+                        voice.name.includes('Zira') || // Windows
+                        voice.name.includes('Samantha') || // macOS
+                        voice.name.includes('Google UK English Female') || // Chrome
+                        voice.name.toLowerCase().includes('female')
+                    );
+                    
+                    // Fallback to first available English voice if no female found
+                    if (!femaleVoice) {
+                        femaleVoice = voices.find(voice => voice.lang.includes('en-'));
+                    }
+                };
+
+                // Chrome needs this event to populate voices
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+                
+                // Some browsers need this to load voices
+                if (window.speechSynthesis.getVoices().length === 0) {
+                    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+                } else {
+                    loadVoices();
+                }
+            }
+        }
+
+        // Speak with female voice
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Configure for female voice
+                utterance.rate = 1.0; // Normal speed
+                utterance.pitch = 1.1; // Slightly higher pitch
+                utterance.volume = 1; // Full volume
+                
+                // Use female voice if available
+                if (femaleVoice) {
+                    utterance.voice = femaleVoice;
+                }
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Initialize the app
+        function init() {
+            setupMessageUI();
+            setupVoiceRecognition();
+            setupEventListeners();
+            addWelcomeMessage();
+        }
+
+        // Set up the message display
+        function setupMessageUI() {
+            // Add placeholder to contenteditable div
+            inputBox.addEventListener('focus', () => {
+                if (inputBox.textContent === '') {
+                    inputBox.dataset.placeholder = 'Type or speak...';
+                }
+            });
+
+            inputBox.addEventListener('blur', () => {
+                if (inputBox.textContent === '') {
+                    inputBox.removeAttribute('data-placeholder');
+                }
+            });
+
+            // Set initial placeholder
+            if (inputBox.textContent === '') {
+                inputBox.dataset.placeholder = 'Type or speak...';
+            }
+        }
+
+        // Set up voice recognition
+        function setupVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                showMessage('assistant', 'Voice input is not supported in your browser. Please use Chrome or Edge.');
+                micButton.disabled = true;
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                updateMicButton(true);
+                voiceIndicator.classList.add('active');
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                updateMicButton(false);
+                voiceIndicator.classList.remove('active');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                inputBox.textContent = transcript;
+                sendMessage();
+            };
+
+            recognition.onerror = (event) => {
+                handleVoiceError(event.error);
+            };
+
+            // Check initial permission state
+            checkMicrophonePermission();
+        }
+
+        // Check microphone permission
+        async function checkMicrophonePermission() {
+            try {
+                if (navigator.permissions) {
+                    const status = await navigator.permissions.query({ name: 'microphone' });
+                    permissionGranted = status.state === 'granted';
+                    status.onchange = () => {
+                        permissionGranted = status.state === 'granted';
+                    };
+                }
+            } catch (e) {
+                console.log('Permissions API not supported');
+            }
+        }
+
+        // Handle voice errors
+        function handleVoiceError(error) {
+            console.error('Voice error:', error);
+            
+            let errorMessage = 'Voice input error. ';
+            switch(error) {
+                case 'not-allowed':
+                case 'permission-denied':
+                    errorMessage = 'Microphone access was denied. ';
+                    permissionHelp.classList.add('show');
+                    break;
+                case 'no-speech':
+                    errorMessage = 'No speech detected. Try speaking louder.';
+                    break;
+                case 'audio-capture':
+                    errorMessage = 'Microphone not available. Check your connection.';
+                    break;
+                default:
+                    errorMessage += error;
+            }
+            
+            showMessage('assistant', errorMessage);
+            updateMicButton(false);
+        }
+
+        // Update microphone button state
+        function updateMicButton(isActive) {
+            micButton.innerHTML = isActive ? '🔴' : '🎤';
+            micButton.title = isActive ? "Stop recording" : "Start voice input";
+        }
+
+        // Show a message in the chat
+        function showMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            
+            messageDiv.innerHTML = `
+                <div class="avatar ${role === 'user' ? 'user-avatar' : ''}">
+                    ${role === 'user' ? '👤' : '🔘'}
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${content}</div>
+                </div>
+            `;
+            
+            messageContainer.appendChild(messageDiv);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant-message';
+            messageDiv.innerHTML = `
+                <div class="avatar">🔘</div>
+                <div class="message-content"></div>
+            `;
+            
+            messageDiv.querySelector('.message-content').appendChild(typingDiv);
+            messageContainer.appendChild(messageDiv);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Send message to backend API
+        async function sendMessage() {
+            const message = inputBox.textContent.trim();
+            if (!message) return;
+            
+            showMessage('user', message);
+            inputBox.textContent = '';
+            
+            // Show typing indicator
+            const typingMessage = showTypingIndicator();
+            
+            try {
+                // Make POST request to API
+                const response = await fetch('/agent', {
+                    method: 'POST',
+                    headers: API_HEADERS,
+                    body: JSON.stringify({ input: message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                
+                const data = await response.json();
+                messageContainer.removeChild(typingMessage);
+                showMessage('assistant', data.agent);
+                
+                // Speak the response with female voice
+                speak(data.agent);
+            } catch (error) {
+                console.error('API Error:', error);
+                messageContainer.removeChild(typingMessage);
+                showMessage('assistant', `Sorry, I encountered an error: ${error.message}`);
+            }
+        }
+
+        // Generate a simulated response if API is not available
+        function generateResponse(input) {
+            input = input.toLowerCase();
+            
+            if (input.includes('hello') || input.includes('hi')) {
+                return "Hello! I'm Alexa. How can I help you today?";
+            } else if (input.includes('weather')) {
+                return "I can check the weather for you. For accurate results, I'd need to know your location.";
+            } else if (input.includes('time')) {
+                return `The current time is ${new Date().toLocaleTimeString()}.`;
+            } else if (input.includes('thank')) {
+                return "You're welcome! Is there anything else I can help with?";
+            } else {
+                return "I'm Alexa, your voice assistant. Try asking me about the weather, time, or just say hello!";
+            }
+        }
+
+        // Add welcome message
+        function addWelcomeMessage() {
+            setTimeout(() => {
+                showMessage('assistant', "Hello! I'm Alexa, your voice assistant. You can talk to me by clicking the microphone button or typing your message.");
+                // Speak the welcome message
+                speak("Hello! I'm Alexa, your voice assistant.");
+            }, 500);
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Microphone button
+            micButton.addEventListener('click', () => {
+                if (!recognition) return;
+                
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    try {
+                        recognition.start();
+                    } catch (error) {
+                        handleVoiceError(error);
+                    }
+                }
+            });
+
+            // Send button
+            sendButton.addEventListener('click', sendMessage);
+
+            // Input box - send on Enter
+            inputBox.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Close permission help
+            closeHelp.addEventListener('click', () => {
+                permissionHelp.classList.remove('show');
+            });
+        }
+
+        // Initialize the app when loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeVoices(); // Initialize voice synthesis first
+            init(); // Then initialize the rest of the app
+        });
+    </script>
+</body>
+</html>
