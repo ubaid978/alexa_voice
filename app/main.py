@@ -31,6 +31,7 @@ from langchain.tools.tavily_search import TavilySearchResults
 from langchain.utilities.tavily_search import TavilySearchAPIWrapper
 import pytz
 
+
 # Load environment variables
 load_dotenv(find_dotenv())
 
@@ -178,6 +179,5 @@ async def agent_response(request: AgentRequest):
     except Exception as e:
         return {'user': request.input, 'agent': f"Sorry, I encountered an error: {str(e)}"}
 
-if __name__=="__main__":
-    uvicorn.run(app,port=1535)
+
 
