@@ -178,6 +178,8 @@ async def agent_response(request: AgentRequest):
         return {'user': request.input, 'agent': response}
     except Exception as e:
         return {'user': request.input, 'agent': f"Sorry, I encountered an error: {str(e)}"}
+    if __name__=="__main__":
+        uvicorn.run(host="0.0.0.0",port=1000)
 
 
 
